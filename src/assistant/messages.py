@@ -103,11 +103,3 @@ def tool_message(results: list[ToolResult]) -> Message:
     """One provider-neutral tool message may carry several parallel results."""
     return Message(role="tool", tool_results=results)
 
-
-def render_tool_results(results: list[ToolResult]) -> str:
-    """Compact, model-readable rendering of results (used by compaction/CLI)."""
-    parts = []
-    for result in results:
-        status = "ERROR" if result.is_error else "OK"
-        parts.append(f"[{status}] {result.content}")
-    return "\n".join(parts)

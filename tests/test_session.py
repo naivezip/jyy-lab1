@@ -108,3 +108,27 @@ def test_context_overflow_detection():
     assert is_context_overflow(RuntimeError("This model's maximum context length is 8192"))
     assert is_context_overflow(RuntimeError("prompt is too long"))
     assert not is_context_overflow(RuntimeError("invalid api key"))
+
+
+def test_compaction_retains_trailing_tail_on_resume(tmp_path):
+    session = Session(path=tmp_path / "s.jsonl")
+    session.append(user("old"))
+    session.append(Message(role="assistant", text="old answer"))
+    tail_user = user("recent")
+    tail_assistant = Message(role="assistant", text="recent answer")
+    session.append(tail_user)
+    session.append(tail_assistant)
+
+    session.append_compaction("the summary", {id(tail_user), id(tail_assistant)})
+
+    active = session.active_messages()
+    assert "the summary" in active[0].text
+    assert [m.text for m in active[1:]] == ["recent", "recent answer"]
+
+
+def test_compaction_without_tail_replaces_everything(tmp_path):
+    session = Session(path=tmp_path / "s.jsonl")
+    session.append(user("old"))
+    session.append_compaction("only summary")
+    assert [m.text for m in session.active_messages()][0].startswith("Summary")
+    assert len(session.active_messages()) == 1

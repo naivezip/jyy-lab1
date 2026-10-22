@@ -88,7 +88,29 @@ def _convert_messages(messages: list[Message]) -> list[dict[str, Any]]:
             continue
 
         out.append({"role": "user", "content": msg.text or ""})
-    return out
+    return _merge_same_role(out)
+
+
+def _merge_same_role(converted: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Anthropic requires alternating roles; merge adjacent same-role turns."""
+    merged: list[dict[str, Any]] = []
+    for message in converted:
+        if merged and merged[-1]["role"] == message["role"]:
+            previous = merged[-1]
+            blocks = (
+                previous["content"]
+                if isinstance(previous["content"], list)
+                else [{"type": "text", "text": previous["content"]}]
+            )
+            extra = (
+                message["content"]
+                if isinstance(message["content"], list)
+                else [{"type": "text", "text": message["content"]}]
+            )
+            previous["content"] = blocks + extra
+        else:
+            merged.append(message)
+    return merged
 
 
 def _system_text(messages: list[Message]) -> str:

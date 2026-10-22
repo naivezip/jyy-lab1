@@ -176,3 +176,18 @@ def test_anthropic_drops_thinking_without_signature():
         Message(role="assistant", text="hi", thinking=[ThinkingBlock(text="no sig")])
     ])
     assert out[0]["content"] == [{"type": "text", "text": "hi"}]
+
+
+def test_anthropic_merges_adjacent_same_role_messages():
+    from assistant.providers import anthropic_provider
+
+    out = anthropic_provider._convert_messages([
+        Message(role="user", text="one"),
+        Message(role="user", text="two"),
+        Message(role="assistant", text="three"),
+    ])
+    assert [m["role"] for m in out] == ["user", "assistant"]
+    assert out[0]["content"] == [
+        {"type": "text", "text": "one"},
+        {"type": "text", "text": "two"},
+    ]

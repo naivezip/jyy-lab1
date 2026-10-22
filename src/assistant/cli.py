@@ -145,7 +145,7 @@ class App:
         if summary.startswith(SUMMARY_PREFIX):
             summary = summary[len(SUMMARY_PREFIX):]
         self.history = rebuilt
-        self.session.append_compaction(summary.strip())
+        self.session.append_compaction(summary.strip(), {id(m) for m in rebuilt})
         self.renderer.handle(Notice("Conversation compacted."))
 
     def handle_command(self, line: str) -> bool:

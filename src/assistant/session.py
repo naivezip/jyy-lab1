@@ -93,10 +93,23 @@ class Session:
         for message in messages:
             self.append(message)
 
-    def append_compaction(self, summary: str) -> None:
-        self.compactions.append(Compaction(summary, len(self.messages)))
+    def append_compaction(self, summary: str, keep_ids: set[int] | None = None) -> None:
+        """Record a summary that replaces history except a retained tail.
+
+        `keep_ids` are the identities of messages kept verbatim after the
+        summary. Only a trailing suffix of the stored history can be retained;
+        anything else is considered replaced.
+        """
+        keep = keep_ids or set()
+        retained = 0
+        for message in reversed(self.messages):
+            if id(message) not in keep:
+                break
+            retained += 1
+        replaced_upto = len(self.messages) - retained
+        self.compactions.append(Compaction(summary, replaced_upto))
         self._write(
-            {"type": "compaction", "summary": summary, "replaced_upto": len(self.messages)}
+            {"type": "compaction", "summary": summary, "replaced_upto": replaced_upto}
         )
 
     def _write(self, record: dict) -> None:
