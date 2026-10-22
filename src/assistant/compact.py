@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import re
-
 from assistant.messages import Message
 from assistant.providers.base import Provider, ProviderError, TurnEnd
 

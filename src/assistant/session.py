@@ -70,6 +70,21 @@ class Session:
                 session.messages.append(Message.from_dict(record["message"]))
         return session
 
+    def active_messages(self) -> list[Message]:
+        """The history a resumed session should continue from.
+
+        Only the latest compaction matters: its summary already folds in any
+        earlier ones.
+        """
+        if not self.compactions:
+            return list(self.messages)
+        last = self.compactions[-1]
+        summary = Message(
+            role="user",
+            text=f"Summary of the earlier conversation:\n\n{last.summary}",
+        )
+        return [summary] + self.messages[last.replaced_upto:]
+
     def append(self, message: Message) -> None:
         self.messages.append(message)
         self._write({"type": "message", "message": message.to_dict()})

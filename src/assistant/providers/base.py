@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterator, Protocol
 
-from assistant.messages import Message
+from assistant.messages import Message, ToolCall, ToolResult
 from assistant.tools.base import ToolSpec
 
 
@@ -36,13 +36,24 @@ class Notice:
 
 
 @dataclass
+class ToolStart:
+    call: "ToolCall"
+
+
+@dataclass
+class ToolEnd:
+    call: "ToolCall"
+    result: "ToolResult"
+
+
+@dataclass
 class TurnEnd:
     message: Message
     usage: Usage = field(default_factory=Usage)
     stop_reason: str | None = None
 
 
-StreamEvent = TextDelta | ThinkingDelta | Notice | TurnEnd
+StreamEvent = TextDelta | ThinkingDelta | Notice | ToolStart | ToolEnd | TurnEnd
 
 
 class ProviderError(Exception):

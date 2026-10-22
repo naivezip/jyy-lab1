@@ -14,6 +14,8 @@ from assistant.providers.base import (
     StreamEvent,
     TextDelta,
     ThinkingDelta,
+    ToolEnd,
+    ToolStart,
     TurnEnd,
     Usage,
 )
@@ -26,6 +28,7 @@ class LoopResult:
     messages: list[Message]
     usage: Usage
     stopped_reason: str
+    context_tokens: int = 0
 
 
 class Agent:
@@ -46,14 +49,16 @@ class Agent:
     def run(self, history: list[Message]) -> LoopResult:
         """Run until the model produces a final answer, appending to history."""
         total = Usage()
+        context_tokens = 0
 
         for step in range(1, self._max_steps + 1):
             end = self._stream_turn(history, allow_tools=True)
             total = total + end.usage
+            context_tokens = end.usage.input_tokens or context_tokens
             history.append(end.message)
 
             if not end.message.tool_calls:
-                return LoopResult(history, total, "completed")
+                return LoopResult(history, total, "completed", context_tokens)
 
             results = self._execute(end.message.tool_calls)
             history.append(tool_message(results))
@@ -63,7 +68,7 @@ class Agent:
         end = self._stream_turn(history, allow_tools=False)
         total = total + end.usage
         history.append(end.message)
-        return LoopResult(history, total, "step_limit")
+        return LoopResult(history, total, "step_limit", context_tokens)
 
     def _stream_turn(self, history: list[Message], allow_tools: bool) -> TurnEnd:
         specs = self._registry.specs if allow_tools else []
@@ -99,7 +104,9 @@ class Agent:
                         )
                     )
                     continue
+            self._on_event(ToolStart(call))
             content, is_error = tool.run(call.arguments)
+            self._on_event(ToolEnd(call, ToolResult(tool_call_id=call.id, content=content, is_error=is_error)))
             results.append(
                 ToolResult(
                     tool_call_id=call.id,
