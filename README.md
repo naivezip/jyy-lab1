@@ -75,6 +75,14 @@ Compaction appends a summary record instead of rewriting history, so the origina
 transcript stays auditable. When context grows past 80% of `PA_CONTEXT_WINDOW`
 the conversation is compacted automatically; `/compact` does it on demand.
 
+## Requirements
+
+Python 3.12 or newer. The pinned `.python-version` makes `uv` pick it up.
+
+`NO_PROXY`/`no_proxy` entries containing bracketed IPv6 addresses (e.g. `[::1]`)
+crash the HTTP transport used by both SDKs; `pa` normalises them at startup, so
+no manual environment surgery is needed.
+
 ## Thinking
 
 Thinking is requested by default and streamed dimmed in the terminal. On
