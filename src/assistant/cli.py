@@ -104,19 +104,32 @@ class App:
         self._maybe_auto_compact(result.context_tokens)
 
     def _close_dangling_tool_calls(self) -> None:
-        if not self.history:
+        """Give every unanswered tool call of the current turn an error result.
+
+        A Ctrl-C can land after the assistant message with tool calls is in
+        history but before all of its results are; both providers reject an
+        assistant tool_use that is not followed by a matching result.
+        """
+        index = len(self.history) - 1
+        while index >= 0 and self.history[index].role == "tool":
+            index -= 1
+        if index < 0:
             return
-        last = self.history[-1]
-        if last.role == "assistant" and last.tool_calls:
-            completed = set()
-            if len(self.history) >= 2 and self.history[-2].role == "tool":
-                completed = {r.tool_call_id for r in self.history[-2].tool_results}
-            missing = [c for c in last.tool_calls if c.id not in completed]
-            if missing:
-                self.history.append(tool_message([
-                    ToolResult(tool_call_id=c.id, content="Interrupted by user.", is_error=True)
-                    for c in missing
-                ]))
+        assistant = self.history[index]
+        if assistant.role != "assistant" or not assistant.tool_calls:
+            return
+        completed = {
+            result.tool_call_id
+            for message in self.history[index + 1:]
+            if message.role == "tool"
+            for result in message.tool_results
+        }
+        missing = [call for call in assistant.tool_calls if call.id not in completed]
+        if missing:
+            self.history.append(tool_message([
+                ToolResult(tool_call_id=call.id, content="Interrupted by user.", is_error=True)
+                for call in missing
+            ]))
 
     def _on_event(self, event) -> None:
         self.renderer.handle(event)
