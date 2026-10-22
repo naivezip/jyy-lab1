@@ -9,6 +9,7 @@ import anthropic
 from anthropic import Anthropic
 
 from assistant.config import Config
+from assistant.net import sanitize_proxy_env
 from assistant.messages import Message, ThinkingBlock, ToolCall
 from assistant.providers.base import (
     Notice,
@@ -99,6 +100,7 @@ class AnthropicProvider:
 
     def __init__(self, config: Config) -> None:
         self._config = config
+        sanitize_proxy_env()
         self._client = Anthropic(
             api_key=config.api_key,
             base_url=config.base_url,

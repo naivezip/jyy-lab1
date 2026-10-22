@@ -9,6 +9,7 @@ import openai
 from openai import OpenAI
 
 from assistant.config import Config
+from assistant.net import sanitize_proxy_env
 from assistant.messages import Message, ThinkingBlock, ToolCall, ToolResult
 from assistant.providers.base import (
     Notice,
@@ -81,6 +82,7 @@ class OpenAIProvider:
 
     def __init__(self, config: Config) -> None:
         self._config = config
+        sanitize_proxy_env()
         self._client = OpenAI(
             api_key=config.api_key,
             base_url=config.base_url,
