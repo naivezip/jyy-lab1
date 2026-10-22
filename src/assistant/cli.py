@@ -100,6 +100,7 @@ class App:
         finally:
             self._persist_from(pending)
 
+        self.renderer.usage(result.usage)
         self._maybe_auto_compact(result.context_tokens)
 
     def _close_dangling_tool_calls(self) -> None:

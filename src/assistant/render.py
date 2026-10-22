@@ -76,11 +76,15 @@ class Renderer:
             self._write(self._style(YELLOW, f"! {event.text}") + "\n")
         elif isinstance(event, TurnEnd):
             self._close_all()
-            if self.show_usage and (event.usage.input_tokens or event.usage.output_tokens):
-                self._write(
-                    self._style(DIM, f"[{_tokens(event.usage.input_tokens)} in / "
-                                     f"{_tokens(event.usage.output_tokens)} out]") + "\n"
-                )
+
+    def usage(self, usage: Usage) -> None:
+        """Print one usage line per user turn, not per model step."""
+        if not self.show_usage or not (usage.input_tokens or usage.output_tokens):
+            return
+        self._write(
+            self._style(DIM, f"[{_tokens(usage.input_tokens)} in / "
+                             f"{_tokens(usage.output_tokens)} out]") + "\n"
+        )
 
     def _close_text(self) -> None:
         if self._text_open:

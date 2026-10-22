@@ -41,6 +41,7 @@ def test_renderer_groups_thinking_and_text():
     r.handle(ThinkingDelta("hmm"))
     r.handle(TextDelta("answer"))
     r.handle(TurnEnd(message=None, usage=Usage(1200, 30), stop_reason="stop"))
+    r.usage(Usage(1200, 30))
     out = r.out.getvalue()
     assert "✻ hmm" in out
     assert "answer" in out
