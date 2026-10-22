@@ -10,7 +10,7 @@ from openai import OpenAI
 
 from assistant.config import Config
 from assistant.net import sanitize_proxy_env
-from assistant.messages import Message, ThinkingBlock, ToolCall, ToolResult
+from assistant.messages import Message, ThinkingBlock, ToolCall
 from assistant.providers.base import (
     Notice,
     ProviderError,
