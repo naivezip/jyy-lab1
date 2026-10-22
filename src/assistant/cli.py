@@ -12,6 +12,7 @@ from assistant.compact import compact, estimate_overflow
 from assistant.config import Config, ConfigError, load_config
 from assistant.context import build_system_prompt
 from assistant.messages import Message, ToolResult, tool_message
+from assistant.net import sanitize_proxy_env
 from assistant.providers import build_provider
 from assistant.providers.base import Notice, ProviderError
 from assistant.render import Renderer, show_pager
@@ -208,6 +209,7 @@ def run_repl(app: App) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    sanitize_proxy_env()
     parser = build_parser()
     args = parser.parse_args(argv)
     cwd = str(Path.cwd())
