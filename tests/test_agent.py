@@ -190,3 +190,19 @@ def test_provider_error_propagates_without_mutating_history():
         agent.run(history)
 
     assert len(history) == 1
+
+
+def test_forced_final_turn_drops_stray_tool_calls():
+    # Provider ignores the empty tool list and still returns a tool call.
+    turns = [
+        (assistant_call(ToolCall(id="c1", name="echo", arguments={"text": "x"})), None),
+        (assistant_call(ToolCall(id="c2", name="echo", arguments={"text": "y"})), None),
+    ]
+    agent = Agent(ScriptedProvider(turns), ToolRegistry([echo_tool()]), max_steps=1)
+    history = [Message(role="user", text="hi")]
+
+    result = agent.run(history)
+
+    assert result.stopped_reason == "step_limit"
+    assert history[-1].role == "assistant"
+    assert history[-1].tool_calls == []

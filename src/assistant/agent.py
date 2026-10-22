@@ -67,7 +67,12 @@ class Agent:
         self._on_event(Notice(f"Step limit ({self._max_steps}) reached; asking for a final answer."))
         end = self._stream_turn(history, allow_tools=False)
         total = total + end.usage
-        history.append(end.message)
+        final = end.message
+        if final.tool_calls:
+            # No tools were offered; a stray tool call must not enter history,
+            # otherwise the next request would carry an orphaned tool_use.
+            final = Message(role="assistant", text=final.text, thinking=final.thinking)
+        history.append(final)
         return LoopResult(history, total, "step_limit", context_tokens)
 
     def _stream_turn(self, history: list[Message], allow_tools: bool) -> TurnEnd:
