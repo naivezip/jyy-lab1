@@ -1,5 +1,7 @@
 # personal-agent
 
+[![CI](https://github.com/naivezip/jyy-lab1/actions/workflows/ci.yml/badge.svg)](https://github.com/naivezip/jyy-lab1/actions/workflows/ci.yml)
+
 A personal agent for the terminal. The project is being refactored; this
 repository currently contains the CI foundation only.
 
