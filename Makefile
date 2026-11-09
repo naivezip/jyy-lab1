@@ -1,8 +1,11 @@
 UV ?= uv
 
-.PHONY: ci sync lint test
+.PHONY: ci sync lint test verify-agent-loop
 
 ci: sync lint test
+
+verify-agent-loop:
+	bash formal/agent-loop/run.sh
 
 sync:
 	$(UV) sync --locked
