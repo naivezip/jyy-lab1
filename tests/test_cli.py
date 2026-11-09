@@ -10,7 +10,7 @@ import sys
 import time
 from pathlib import Path
 
-from tests.fake_server import DONE, FakeSSEServer, chunk
+from personal_agent.verify.fake_server import DONE, FakeSSEServer, chunk
 
 ROOT = Path(__file__).resolve().parents[1]
 

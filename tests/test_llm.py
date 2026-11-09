@@ -7,7 +7,7 @@ import time
 
 from personal_agent.config import Config
 from personal_agent.llm import Notice, ReasoningDelta, StepEnd, TextDelta, stream_step
-from tests.fake_server import DONE, FakeSSEServer, chunk
+from personal_agent.verify.fake_server import DONE, FakeSSEServer, chunk
 
 
 def make_config(server: FakeSSEServer) -> Config:

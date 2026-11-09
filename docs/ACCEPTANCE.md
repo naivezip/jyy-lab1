@@ -4,6 +4,11 @@ The rebuild is accepted when the following behaviours are demonstrated. All
 evidence is offline: the suite uses a local fake SSE server, a subprocess, and a
 PTY, and never calls a real model API.
 
+`uv run pa-verify` executes all six rows below offline against the real CLI. It
+needs no API key and no network access, runs every check in a fresh temporary
+workspace against a local fake SSE server, and exits 0 only when all selected
+checks pass. Run `uv run pa-verify --list` for the check ids.
+
 | # | Criterion | Evidence |
 | --- | --- | --- |
 | 1 | 正确调用 API | `tests/test_llm.py` asserts the request body against a local fake SSE server using the real SDK |
