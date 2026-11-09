@@ -1,8 +1,8 @@
 UV ?= uv
 
-.PHONY: ci sync lint test verify-agent-loop
+.PHONY: ci sync lint test verify verify-agent-loop
 
-ci: sync lint test
+ci: sync lint test verify
 
 verify-agent-loop:
 	bash formal/agent-loop/run.sh
@@ -20,3 +20,6 @@ test: sync
 	else \
 		echo "No test files yet; pytest skipped (CI bootstrap)."; \
 	fi
+
+verify:
+	$(UV) run pa-verify

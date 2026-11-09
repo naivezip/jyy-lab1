@@ -52,6 +52,32 @@ Inside the REPL:
 
 Every answer ends with the token usage of that turn.
 
+## Verify
+
+`pa-verify` executes the six acceptance criteria in
+[`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) against the real `pa` CLI. It runs
+entirely offline: every check starts a local fake SSE server, uses a fresh
+temporary workspace, and injects a fake API key, so no real key or network
+access is needed.
+
+```bash
+uv run pa-verify
+uv run pa-verify --list
+uv run pa-verify --only repl,tool-roundtrip --json
+```
+
+| Flag | Effect |
+| --- | --- |
+| `--list` | list check ids, criteria, and titles without running anything |
+| `--only ID[,ID]` | run only the named checks; repeatable, results keep registry order |
+| `--json` | emit one JSON report on stdout |
+| `--timeout SECONDS` | per-process timeout (default 30, must be positive) |
+| `--version` | print `pa-verify 0.1.0` and exit |
+| `--help` | show usage and exit |
+
+Exit codes: `0` when every selected check passes, `1` when any check fails,
+`2` for a usage error.
+
 ## How it works
 
 - The agent runs a ReAct loop: stream one model step, execute the requested

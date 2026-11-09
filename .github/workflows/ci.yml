@@ -45,3 +45,5 @@ jobs:
           enable-cache: true
       - name: Pytest
         run: make test
+      - name: Verify acceptance
+        run: make verify
