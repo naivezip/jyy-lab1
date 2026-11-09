@@ -13,7 +13,7 @@ import personal_agent.agent as agent_module
 from personal_agent.agent import Agent, ToolEnd, ToolStart
 from personal_agent.config import Config
 from personal_agent.llm import Notice, StepEnd, TextDelta, Usage
-from tests.fake_server import DONE, FakeSSEServer, chunk
+from personal_agent.verify.fake_server import DONE, FakeSSEServer, chunk
 
 
 def assistant_tool_call(
