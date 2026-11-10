@@ -1,6 +1,6 @@
 ---
 name: verify-personal-agent
-description: "Verify the personal-agent `pa` terminal CLI. Use before claiming the agent works or after changing its CLI, streaming, reasoning, configuration, or bash tool; drives the real binary offline through pa-verify and a local fake model."
+description: "Verify the personal-agent `pa` terminal CLI. Use before claiming the agent works or after changing its CLI, streaming, reasoning, configuration, bash tool, or file tools; drives the real binary offline through pa-verify and a local fake model."
 ---
 
 # Verify personal-agent
@@ -48,6 +48,9 @@ uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py --help
 uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py one-shot --prompt "Say hello" --reply "Hello from the verification model." --out artifacts/verify-personal-agent/<run-id>/one-shot
 uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py repl --prompt hello --reply "Hello from the verification model." --out artifacts/verify-personal-agent/<run-id>/repl
 uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py tool --out artifacts/verify-personal-agent/<run-id>/tool
+uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py read --out artifacts/verify-personal-agent/<run-id>/read-tool
+uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py write --out artifacts/verify-personal-agent/<run-id>/write-tool
+uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py edit --out artifacts/verify-personal-agent/<run-id>/edit-tool
 uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py streaming --reasoning "Think." --out artifacts/verify-personal-agent/<run-id>/streaming
 ```
 
@@ -72,7 +75,8 @@ Keep every proof under `artifacts/verify-personal-agent/<run-id>/<feature>/`. Th
 - `output.txt` or `transcript.txt` records what the user saw.
 - `exit_code.txt` records the `pa` process status.
 - `requests.json` records the OpenAI-compatible requests received by the fake server.
-- `artifact.txt` records a file side effect when the bash tool wrote one.
+- `artifact.txt` records a file side effect when a tool wrote one.
+- `files.json` records every workspace file after a read, write, or edit journey.
 - `timings.json` records first-delta and stream-end timing for streaming checks.
 
 For `pa-verify`, save the report and exit status:
@@ -87,6 +91,11 @@ Proof standards:
 - Exercise the real user path, not an internal setter or a test-only endpoint.
 - Capture the action and the resulting state. A final screen alone is not enough.
 - Verify side effects such as the artifact file and the second model request, not only visible text.
+- File-tool proof includes the tool line, the `[read: lines …]`, `[write: Wrote …]`, or
+  `[edit: Edited …]` observation, and the file in `files.json` plus `artifact.txt`. A read
+  proof must show the `lines a-b of N` header and six-width numbered lines.
+- Workspace-boundary proof passes a path such as `../outside.txt`; the observation must reject
+  it and `files.json` must show that no outside file was created or read.
 - Use the fake model only because the provider boundary is already isolated in `pa-verify` and `pa_harness.py`. Do not use a real API key for verification.
 - Report an unavailable path with the attempted command and the unmet precondition. Do not mark it verified through a different path.
 
@@ -98,4 +107,4 @@ If a direct `pa` REPL is still running, send `/exit` or Ctrl-D. Never kill by pr
 
 ## Helpers
 
-`scripts/pa_harness.py` is executable. Invoke it through `uv run python` from the repository root so it uses the project virtual environment. Subcommands are `one-shot`, `repl`, `tool`, and `streaming`. Each accepts `--out` and `--timeout`; `--help` on the script or a subcommand shows the full interface.
+`scripts/pa_harness.py` is executable. Invoke it through `uv run python` from the repository root so it uses the project virtual environment. Subcommands are `one-shot`, `repl`, `tool`, `read`, `write`, `edit`, and `streaming`. Each accepts `--out` and `--timeout`; the file-tool subcommands also accept `--path`, `--seed PATH=TEXT`, and `--capture`. `--help` on the script or a subcommand shows the full interface.

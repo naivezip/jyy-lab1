@@ -23,6 +23,8 @@ This directory is the maintained source for verifying the user-facing behavior o
 - CLI proof includes the command, combined stdout and stderr, and exit code.
 - Mutation proof includes a second read of the written file, not only the rendered message.
 - Tool proof includes `artifact.txt` and the second request in `requests.json`.
+- File-tool proof includes `files.json` and `artifact.txt`; a read proof shows the `lines a-b of N` header and six-width numbered lines.
+- Workspace proof includes the rejected path in `output.txt` and `files.json` showing no outside file was read or created.
 - Streaming proof includes `timings.json` and checks that the first text arrived before the stream ended.
 - Record the feature ID and entry point used with every artifact.
 - Report an unreachable path with the attempted command and the unmet precondition. Do not report a skipped entry point as verified through a different path.
@@ -44,4 +46,8 @@ Keep implementation details out of the map. Name only user paths, stable handles
 - [Interactive REPL](./repl.md) covers startup, chat, `/help`, `/new`, and `/exit` through a PTY.
 - [Streaming and reasoning](./streaming-reasoning.md) covers incremental text, reasoning display, and the reasoning request fields.
 - [Bash tool](./bash-tool.md) covers tool execution, the observation returned to the model, and a file side effect.
+- [Read tool](./read-tool.md) covers numbered file reads, line-range paging, and the `lines a-b of N` header.
+- [Write tool](./write-tool.md) covers creating files, parent directories, and refusing to modify an existing file.
+- [Edit tool](./edit-tool.md) covers replacing a 1-based inclusive line range and directing missing files to `write`.
+- [Workspace boundary](./workspace.md) covers relative paths, absolute paths inside the root, and rejected escapes.
 - [CLI basics](./cli-basics.md) covers `--version`, `--help`, and missing-key exits.

@@ -233,3 +233,30 @@ def test_multiple_tool_calls_run_in_order(tmp_path: Path, monkeypatch: pytest.Mo
         "call_1",
         "call_2",
     ]
+
+
+def test_read_tool_is_dispatched(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "notes.txt").write_text("alpha\nbeta\n", encoding="utf-8")
+    calls = {"count": 0}
+
+    def fake_stream(_config: Config, _history: list[dict[str, Any]]) -> Iterator[StepEnd]:
+        calls["count"] += 1
+        if calls["count"] == 1:
+            yield step(assistant_tool_call("read", {"path": "notes.txt"}, "call_read"))
+        else:
+            yield step({"role": "assistant", "content": "read done", "reasoning_content": ""})
+
+    monkeypatch.setattr(agent_module, "stream_step", fake_stream)
+    agent = Agent(Config(api_key="test", max_steps=3), str(tmp_path))
+    history: list[dict[str, Any]] = [
+        {"role": "system", "content": "system"},
+        {"role": "user", "content": "read it"},
+    ]
+
+    events = list(agent.run(history))
+
+    starts = [event for event in events if isinstance(event, ToolStart)]
+    ends = [event for event in events if isinstance(event, ToolEnd)]
+    assert starts[0].name == "read"
+    assert ends[0].is_error is False
+    assert ends[0].content.startswith("lines 1-2 of 2")

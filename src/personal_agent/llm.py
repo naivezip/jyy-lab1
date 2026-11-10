@@ -10,7 +10,7 @@ import openai
 from openai import OpenAI
 
 from .config import Config
-from .tools.bash import BASH_TOOL_SPEC
+from .tools import TOOL_SPECS
 
 
 class LLMError(Exception):
@@ -72,7 +72,7 @@ def stream_step(config: Config, history: list[dict[str, Any]]) -> Iterator[Strea
     kwargs: dict[str, Any] = {
         "model": config.model,
         "messages": history,
-        "tools": [BASH_TOOL_SPEC],
+        "tools": list(TOOL_SPECS),
         "stream": True,
         "stream_options": {"include_usage": True},
         "reasoning_effort": config.reasoning_effort,

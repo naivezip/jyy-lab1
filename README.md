@@ -3,7 +3,8 @@
 [![CI](https://github.com/naivezip/jyy-lab1/actions/workflows/ci.yml/badge.svg)](https://github.com/naivezip/jyy-lab1/actions/workflows/ci.yml)
 
 A minimal personal agent for the terminal: a ReAct loop over DeepSeek's
-OpenAI-compatible API, streamed over SSE, with a single `bash` tool.
+OpenAI-compatible API, streamed over SSE, with `bash` plus workspace-confined
+`read`, `write`, and `edit` tools.
 
 ## Requirements
 
@@ -81,14 +82,19 @@ Exit codes: `0` when every selected check passes, `1` when any check fails,
 ## How it works
 
 - The agent runs a ReAct loop: stream one model step, execute the requested
-  `bash` calls, feed the observations back, and repeat until the model stops
-  calling tools or `PA_MAX_STEPS` is reached.
+  `bash`, `read`, `write`, or `edit` calls, feed the observations back, and repeat
+  until the model stops calling tools or `PA_MAX_STEPS` is reached.
 - Thinking is always enabled: requests send `reasoning_effort="high"` and
   `{"thinking": {"type": "enabled"}}`; `reasoning_content` is streamed dimmed and
   replayed on later turns.
 - `bash` runs `bash -lc` in the current working directory, returns exit code,
   stdout and stderr, and truncates output at 16,000 characters. Commands run
   without confirmation, so only run `pa` in directories you trust.
+- `read` returns a `lines a-b of N` header plus six-width numbered lines and can
+  page by a 1-based inclusive line range. `write` only creates new files;
+  `edit` only replaces a line range in an existing file. All three resolve paths
+  inside the workspace and reject escapes, including symlinks whose real target
+  is outside. The boundary is not a sandbox because `bash` remains unconfined.
 
 ## Development
 

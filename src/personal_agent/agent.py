@@ -16,7 +16,7 @@ from .llm import (
     TextDelta,
     stream_step,
 )
-from .tools.bash import BashTool
+from .tools import BashTool, EditTool, ReadTool, WriteTool
 
 
 @dataclass(frozen=True)
@@ -42,7 +42,12 @@ class Agent:
 
     def __init__(self, config: Config, cwd: str) -> None:
         self._config = config
-        self._bash = BashTool(cwd)
+        self._tools = {
+            "bash": BashTool(cwd),
+            "read": ReadTool(cwd),
+            "write": WriteTool(cwd),
+            "edit": EditTool(cwd),
+        }
 
     def run(self, history: list[dict[str, Any]]) -> Iterator[AgentEvent]:
         """Run one turn, appending assistant and tool messages to history."""
@@ -95,17 +100,19 @@ class Agent:
                 history,
             )
             return
-        if name != "bash":
+        tool = self._tools.get(name)
+        if tool is None:
+            available = ", ".join(self._tools)
             yield self._rejected(
                 call_id,
                 name,
-                f"Unknown tool {name!r}. Available: bash",
+                f"Unknown tool {name!r}. Available: {available}",
                 history,
             )
             return
 
         yield ToolStart(call_id=call_id, name=name, arguments=arguments)
-        content, is_error = self._bash.run(arguments)
+        content, is_error = tool.run(arguments)
         yield ToolEnd(call_id=call_id, name=name, content=content, is_error=is_error)
         history.append({"role": "tool", "tool_call_id": call_id, "content": content})
 

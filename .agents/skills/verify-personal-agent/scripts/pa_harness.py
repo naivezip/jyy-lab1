@@ -34,8 +34,10 @@ def text_script(
     return script
 
 
-def tool_scripts(command: str, reply: str) -> list[list[tuple[float, dict[str, object] | str]]]:
-    arguments = json.dumps({"command": command})
+def tool_scripts(
+    name: str, arguments: dict[str, object], reply: str
+) -> list[list[tuple[float, dict[str, object] | str]]]:
+    raw_arguments = json.dumps(arguments)
     first: list[tuple[float, dict[str, object] | str]] = [
         (
             0.0,
@@ -46,7 +48,7 @@ def tool_scripts(command: str, reply: str) -> list[list[tuple[float, dict[str, o
                             "index": 0,
                             "id": "call_1",
                             "type": "function",
-                            "function": {"name": "bash", "arguments": arguments},
+                            "function": {"name": name, "arguments": raw_arguments},
                         }
                     ]
                 }
@@ -124,7 +126,9 @@ def run_repl(args: argparse.Namespace) -> int:
 def run_tool(args: argparse.Namespace) -> int:
     with VerificationSession(timeout=args.timeout) as session:
         with session.workspace() as cwd:
-            with session.fake_server(tool_scripts(args.command, args.reply)) as server:
+            with session.fake_server(
+                tool_scripts("bash", {"command": args.command}, args.reply)
+            ) as server:
                 result = session.run_cli(["-p", args.prompt], cwd=cwd, server=server)
                 requests = list(server.requests)
                 artifact_path = cwd / "artifact.txt"
@@ -137,6 +141,81 @@ def run_tool(args: argparse.Namespace) -> int:
     (args.out / "exit_code.txt").write_text(f"{result.returncode}\n", encoding="utf-8")
     write_requests(args.out, requests)
     return result.returncode
+
+
+DEFAULT_FILE_SEEDS = {"notes.txt": "alpha\nbeta\ngamma\n"}
+
+
+def parse_seed(value: str) -> tuple[str, str]:
+    """Parse a repeatable PATH=TEXT seed; ``\\n`` becomes a newline."""
+    path, separator, text = value.partition("=")
+    if not separator or not path:
+        raise argparse.ArgumentTypeError("--seed must be PATH=TEXT")
+    return path, text.replace("\\n", "\n")
+
+
+def snapshot_files(cwd: Path) -> dict[str, str]:
+    """Map every regular file under the workspace to its UTF-8 text."""
+    files: dict[str, str] = {}
+    for path in sorted(cwd.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = str(path.relative_to(cwd))
+        try:
+            files[relative] = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            files[relative] = "<binary>"
+    return files
+
+
+def run_file_tool(args: argparse.Namespace, name: str) -> int:
+    if args.seed:
+        seeds = dict(args.seed)
+    elif name in ("read", "edit"):
+        seeds = dict(DEFAULT_FILE_SEEDS)
+    else:
+        seeds = {}
+    arguments: dict[str, object] = {"path": args.path}
+    if name == "read":
+        if args.start is not None:
+            arguments["start"] = args.start
+        if args.end is not None:
+            arguments["end"] = args.end
+    elif name == "edit":
+        arguments.update({"start": args.start, "end": args.end, "content": args.content})
+    elif name == "write":
+        arguments["content"] = args.content
+
+    with VerificationSession(timeout=args.timeout) as session:
+        with session.workspace() as cwd:
+            for relative, text in seeds.items():
+                seed_path = cwd / relative
+                seed_path.parent.mkdir(parents=True, exist_ok=True)
+                seed_path.write_text(text, encoding="utf-8", newline="")
+            with session.fake_server(tool_scripts(name, arguments, args.reply)) as server:
+                result = session.run_cli(["-p", args.prompt], cwd=cwd, server=server)
+                requests = list(server.requests)
+                files = snapshot_files(cwd)
+    prepare(args.out)
+    capture = args.capture or args.path
+    (args.out / "output.txt").write_text(result.output, encoding="utf-8")
+    (args.out / "artifact.txt").write_text(files.get(capture, ""), encoding="utf-8")
+    (args.out / "files.json").write_text(json.dumps(files, indent=2) + "\n", encoding="utf-8")
+    (args.out / "exit_code.txt").write_text(f"{result.returncode}\n", encoding="utf-8")
+    write_requests(args.out, requests)
+    return result.returncode
+
+
+def run_read(args: argparse.Namespace) -> int:
+    return run_file_tool(args, "read")
+
+
+def run_write(args: argparse.Namespace) -> int:
+    return run_file_tool(args, "write")
+
+
+def run_edit(args: argparse.Namespace) -> int:
+    return run_file_tool(args, "edit")
 
 
 def run_streaming(args: argparse.Namespace) -> int:
@@ -184,6 +263,34 @@ def run_streaming(args: argparse.Namespace) -> int:
     return returncode
 
 
+def _add_file_parser(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+    name: str,
+    help_text: str,
+    default_path: str,
+) -> argparse.ArgumentParser:
+    parser = subparsers.add_parser(name, help=help_text)
+    parser.add_argument("--path", default=default_path)
+    parser.add_argument("--prompt", default="Exercise the file tool.")
+    parser.add_argument("--reply", default="Done.")
+    parser.add_argument(
+        "--seed",
+        action="append",
+        type=parse_seed,
+        default=None,
+        metavar="PATH=TEXT",
+        help="Create PATH with TEXT before the run; repeatable",
+    )
+    parser.add_argument(
+        "--capture",
+        default=None,
+        help="Workspace file to copy to artifact.txt (defaults to --path)",
+    )
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--timeout", type=float, default=30.0)
+    return parser
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pa_harness.py",
@@ -214,6 +321,21 @@ def build_parser() -> argparse.ArgumentParser:
     tool.add_argument("--out", type=Path, required=True)
     tool.add_argument("--timeout", type=float, default=30.0)
     tool.set_defaults(func=run_tool)
+
+    read = _add_file_parser(subparsers, "read", "drive one read-tool round trip", "notes.txt")
+    read.add_argument("--start", type=int, default=None)
+    read.add_argument("--end", type=int, default=None)
+    read.set_defaults(func=run_read)
+
+    write = _add_file_parser(subparsers, "write", "drive one write-tool round trip", "created.txt")
+    write.add_argument("--content", default="created by write\n")
+    write.set_defaults(func=run_write)
+
+    edit = _add_file_parser(subparsers, "edit", "drive one edit-tool round trip", "notes.txt")
+    edit.add_argument("--start", type=int, default=2)
+    edit.add_argument("--end", type=int, default=2)
+    edit.add_argument("--content", default="BETA\n")
+    edit.set_defaults(func=run_edit)
 
     streaming = subparsers.add_parser("streaming", help="measure streamed text timing")
     streaming.add_argument("--prompt", default="stream a sentence")

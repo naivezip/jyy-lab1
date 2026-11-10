@@ -52,11 +52,18 @@ class Renderer:
 
     def tool_start(self, event: ToolStart) -> None:
         self._end_line()
-        command = event.arguments.get("command", "")
-        self._dim(f"$ {command}\n")
+        if event.name == "bash":
+            command = event.arguments.get("command", "")
+            self._dim(f"$ {command}\n")
+        else:
+            path = event.arguments.get("path", "")
+            self._dim(f"{event.name} {path}\n")
 
     def tool_end(self, event: ToolEnd) -> None:
         first_line = event.content.splitlines()[0] if event.content else "no output"
+        prefix = f"{event.name}: "
+        if first_line.startswith(prefix):
+            first_line = first_line[len(prefix) :]
         self._dim(f"[{event.name}: {first_line}]\n")
 
     def step_end(self, _event: StepEnd) -> None:
