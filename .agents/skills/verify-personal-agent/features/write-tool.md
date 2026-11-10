@@ -23,6 +23,7 @@ Preconditions:
 - The output directory is fresh.
 
 - **Create a file.** Run `uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py write --path created.txt --content "created by write\n" --out artifacts/verify-personal-agent/<run-id>/write-tool`. `output.txt` contains `write created.txt`, `[write: Wrote 17 bytes to created.txt]`, and `Done.`; `exit_code.txt` reads `0`.
+- **Create a nested file.** Run the helper with `--path deep/nested/created.txt` and a fresh output directory. `files.json` contains `"deep/nested/created.txt": "created by write\n"`, proving the missing parent directories were created.
 - **Confirm the side effect.** `artifact.txt` contains `created by write`, and `files.json` contains `"created.txt": "created by write\n"`. This is a second user-facing view of the file, not only the renderer summary.
 - **Confirm the model saw the observation.** `requests.json` contains exactly two requests. The second request contains an assistant `tool_calls` entry for `call_1` followed by a `role: "tool"` message with `tool_call_id: "call_1"` and content containing `Wrote 17 bytes`.
 - **Try an existing target.** Run the helper with `--path notes.txt --seed "notes.txt=alpha\n"` and a fresh output directory. `output.txt` contains `[write: notes.txt already exists; use edit to modify an existing file]`; `files.json` still shows `"notes.txt": "alpha\n"`.

@@ -22,6 +22,7 @@ The REPL lets a user keep one conversation open in a terminal, send multiple pro
 Preconditions:
 
 - `uv sync` has completed and `uv run pa-verify --json` reports six passes.
+- For a direct `uv run pa`, `PA_API_KEY` is available from the environment or the current directory's `.env`; without it, `pa` exits 2 before printing the banner. `pa_harness.py` injects `PA_API_KEY=verify-key` for the journey.
 - The helper has a PTY available. The app uses `input()` and the renderer checks `isatty()`.
 - The output directory is fresh.
 
@@ -33,7 +34,7 @@ Preconditions:
 
 ## Gotchas
 
-- The REPL needs a PTY. A plain pipe can miss the banner because the CLI uses `print()` without an explicit flush before `input()`.
+- The REPL needs a PTY because the helper sends keystrokes and the renderer checks `isatty()` for dimming. `input()` flushes stdout before reading, so a plain pipe still receives the banner; a pipe cannot be driven with `send()`.
 - PTY output contains echoed input and ANSI dim codes. Assert on short byte substrings, not whole lines.
 - `/help` and `/new` do not call the model. `requests.json` should contain only the one request from `hello`.
 - `/new` keeps the system message and drops the rest of the history. The transcript proving `New conversation.` is not proof that the next turn has no history; a second turn is needed for that.

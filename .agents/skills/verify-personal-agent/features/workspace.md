@@ -24,7 +24,9 @@ Preconditions:
 - The output directory is fresh.
 
 - **Read by relative path.** Run `uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py read --path notes.txt --out artifacts/verify-personal-agent/<run-id>/workspace`. `output.txt` contains `read notes.txt` and `[read: lines 1-3 of 3]`; `files.json` shows only `notes.txt`.
-- **Reject a parent escape.** Run the helper with `--path ../outside.txt` and a fresh output directory. `output.txt` contains `[read: '../outside.txt' resolves outside the workspace]`; `files.json` still shows only the seeded workspace file and no outside file was read or created.
+- **Accept an absolute path inside the workspace.** Run the helper with `read --path notes.txt --absolute` and a fresh output directory. `output.txt` contains `[read: lines 1-3 of 3]`; the `argv.txt` command still records the readable relative path while the tool receives the workspace's absolute path.
+- **Reject a symlink escape.** Run the helper with `read --path link.txt --symlink` and a fresh output directory. It creates `link.txt` pointing at a file outside the workspace. `output.txt` contains `[read: 'link.txt' resolves outside the workspace]`; `files.json` does not contain the outside target.
+- **Reject a parent escape.** Run the helper with `--path ../outside.txt` and a fresh output directory. `output.txt` contains `[read: '../outside.txt' resolves outside the workspace]`; `files.json` still shows only the seeded workspace file. The rejection comes from the shared resolver before any file operation.
 - **Reject a write escape.** Run `write --path ../outside.txt --content nope` with a fresh output directory. `output.txt` contains `[write: '../outside.txt' resolves outside the workspace]`; `exit_code.txt` reads `0` for the turn and `files.json` is empty.
 
 ## Gotchas

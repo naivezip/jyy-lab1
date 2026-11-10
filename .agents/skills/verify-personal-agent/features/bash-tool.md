@@ -35,4 +35,4 @@ Preconditions:
 - The workspace is a temporary directory owned by the helper. Relative paths in the command resolve there, not in the repository.
 - Tool output is truncated at 16,000 characters. Do not use the tool to prove large outputs without checking the truncation marker.
 - A tool command failure is an observation with `is_error=True`; the turn can still finish successfully. Assert the tool message content, not only the `$` line.
-- The fake server reuses its last script if a third request appears. The helper asserts exactly two requests in the acceptance check, but a feature proof should still read `requests.json`.
+- The fake server reuses its last script if a third request appears. The `tool-roundtrip` acceptance check asserts exactly two requests, but a feature proof should still read `requests.json`.

@@ -107,4 +107,4 @@ If a direct `pa` REPL is still running, send `/exit` or Ctrl-D. Never kill by pr
 
 ## Helpers
 
-`scripts/pa_harness.py` is executable. Invoke it through `uv run python` from the repository root so it uses the project virtual environment. Subcommands are `one-shot`, `repl`, `tool`, `read`, `write`, `edit`, and `streaming`. Each accepts `--out` and `--timeout`; the file-tool subcommands also accept `--path`, `--seed PATH=TEXT`, and `--capture`. `--help` on the script or a subcommand shows the full interface.
+`scripts/pa_harness.py` is executable. Invoke it through `uv run python` from the repository root so it uses the project virtual environment. Subcommands are `one-shot`, `repl`, `tool`, `read`, `write`, `edit`, and `streaming`. Each accepts `--out` and `--timeout`; the file-tool subcommands also accept `--path`, `--seed PATH=TEXT`, `--capture`, `--start`, `--end`, `--content`, `--absolute`, and `--symlink`. `--content` and `--seed` decode `\n` as a newline. `--help` on the script or a subcommand shows the full interface.

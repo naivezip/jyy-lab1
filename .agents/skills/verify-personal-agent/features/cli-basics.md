@@ -24,7 +24,7 @@ Preconditions:
 
 - **Version.** Run `uv run pa --version`. Exit code is `0` and stdout is exactly `pa 0.1.0`.
 - **Help.** Run `uv run pa --help`. Exit code is `0` and stdout begins with `usage: pa`. The output lists `-p`, `--model`, and `--version`.
-- **Acceptance check.** Run `uv run pa-verify --only cli-terminal --json`. Exit code is `0`, `"ok": true`, and the one result has `"status": "pass"` with `version: pa 0.1.0` and a `usage: pa` help line in evidence.
+- **Acceptance check.** Run `uv run pa-verify --only cli-terminal --json`. Exit code is `0`, `"ok": true`, and the one result has `"status": "pass"` with evidence label `version` whose value is `pa 0.1.0` and a `help` value beginning `usage: pa`.
 - **Missing key.** Run `env -u PA_API_KEY uv run pa -p hi`. Exit code is `2` and stderr contains `PA_API_KEY is not set`. Do not run this from a directory with a `.env` that contains a key.
 
 ## Gotchas

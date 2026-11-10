@@ -146,19 +146,24 @@ def run_tool(args: argparse.Namespace) -> int:
 DEFAULT_FILE_SEEDS = {"notes.txt": "alpha\nbeta\ngamma\n"}
 
 
+def parse_text(value: str) -> str:
+    """Interpret ``\\n`` as a newline in a command-line text argument."""
+    return value.replace("\\n", "\n")
+
+
 def parse_seed(value: str) -> tuple[str, str]:
     """Parse a repeatable PATH=TEXT seed; ``\\n`` becomes a newline."""
     path, separator, text = value.partition("=")
     if not separator or not path:
         raise argparse.ArgumentTypeError("--seed must be PATH=TEXT")
-    return path, text.replace("\\n", "\n")
+    return path, parse_text(text)
 
 
 def snapshot_files(cwd: Path) -> dict[str, str]:
     """Map every regular file under the workspace to its UTF-8 text."""
     files: dict[str, str] = {}
     for path in sorted(cwd.rglob("*")):
-        if not path.is_file():
+        if path.is_symlink() or not path.is_file():
             continue
         relative = str(path.relative_to(cwd))
         try:
@@ -188,10 +193,16 @@ def run_file_tool(args: argparse.Namespace, name: str) -> int:
 
     with VerificationSession(timeout=args.timeout) as session:
         with session.workspace() as cwd:
+            if args.absolute:
+                arguments["path"] = str(cwd / args.path)
             for relative, text in seeds.items():
                 seed_path = cwd / relative
                 seed_path.parent.mkdir(parents=True, exist_ok=True)
                 seed_path.write_text(text, encoding="utf-8", newline="")
+            if args.symlink:
+                outside = cwd.parent / f"{cwd.name}-outside.txt"
+                outside.write_text("outside\n", encoding="utf-8")
+                (cwd / "link.txt").symlink_to(outside)
             with session.fake_server(tool_scripts(name, arguments, args.reply)) as server:
                 result = session.run_cli(["-p", args.prompt], cwd=cwd, server=server)
                 requests = list(server.requests)
@@ -271,6 +282,16 @@ def _add_file_parser(
 ) -> argparse.ArgumentParser:
     parser = subparsers.add_parser(name, help=help_text)
     parser.add_argument("--path", default=default_path)
+    parser.add_argument(
+        "--absolute",
+        action="store_true",
+        help="Pass --path to the tool as an absolute path inside the temporary workspace",
+    )
+    parser.add_argument(
+        "--symlink",
+        action="store_true",
+        help="Create link.txt inside the workspace pointing at a file outside it",
+    )
     parser.add_argument("--prompt", default="Exercise the file tool.")
     parser.add_argument("--reply", default="Done.")
     parser.add_argument(
@@ -328,13 +349,13 @@ def build_parser() -> argparse.ArgumentParser:
     read.set_defaults(func=run_read)
 
     write = _add_file_parser(subparsers, "write", "drive one write-tool round trip", "created.txt")
-    write.add_argument("--content", default="created by write\n")
+    write.add_argument("--content", type=parse_text, default="created by write\n")
     write.set_defaults(func=run_write)
 
     edit = _add_file_parser(subparsers, "edit", "drive one edit-tool round trip", "notes.txt")
     edit.add_argument("--start", type=int, default=2)
     edit.add_argument("--end", type=int, default=2)
-    edit.add_argument("--content", default="BETA\n")
+    edit.add_argument("--content", type=parse_text, default="BETA\n")
     edit.set_defaults(func=run_edit)
 
     streaming = subparsers.add_parser("streaming", help="measure streamed text timing")

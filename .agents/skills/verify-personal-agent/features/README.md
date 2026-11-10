@@ -24,7 +24,7 @@ This directory is the maintained source for verifying the user-facing behavior o
 - Mutation proof includes a second read of the written file, not only the rendered message.
 - Tool proof includes `artifact.txt` and the second request in `requests.json`.
 - File-tool proof includes `files.json` and `artifact.txt`; a read proof shows the `lines a-b of N` header and six-width numbered lines.
-- Workspace proof includes the rejected path in `output.txt` and `files.json` showing no outside file was read or created.
+- Workspace proof includes the rejected path in `output.txt` and `files.json` unchanged, with the rejection coming from the shared resolver before any file operation.
 - Streaming proof includes `timings.json` and checks that the first text arrived before the stream ended.
 - Record the feature ID and entry point used with every artifact.
 - Report an unreachable path with the attempted command and the unmet precondition. Do not report a skipped entry point as verified through a different path.

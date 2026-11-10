@@ -30,7 +30,7 @@ Preconditions:
 
 ## Gotchas
 
-- A 2.0 second server delay with a 1.0 second gap threshold proves streaming in the same process. A buffered renderer makes the first text and stream end arrive together, so the gap collapses.
+- A server delay above the 1.0 second gap threshold (1.5s in this recipe, 2.0s in `pa-verify`) proves streaming in the same process. A buffered renderer makes the first text and stream end arrive together, so the gap collapses.
 - The fake server writes `Hello` immediately and ` world` after `delay` seconds. A test that waits for the whole process and then reads output cannot prove the first delta arrived early.
 - `reasoning_content` is a DeepSeek extension. The fake server sends it, but a real model may omit it. The request fields are the acceptance evidence for enabling reasoning.
 - A slow CI runner can stretch process startup, but the helper compares two monotonic timestamps inside the same process, so startup time cancels.
