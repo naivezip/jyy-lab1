@@ -18,7 +18,7 @@ One-shot mode lets a user send one prompt from the terminal, stream the answer, 
 
 Preconditions:
 
-- `uv sync` has completed and `uv run pa-verify --json` reports six passes.
+- `uv sync` has completed and `uv run pa-verify --json` reports ten passes.
 - The helper can reach the repository root and imports the installed `personal_agent` package.
 - The output directory does not exist yet or is empty.
 

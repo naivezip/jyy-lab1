@@ -19,7 +19,7 @@ The agent streams answer text as the model produces it and streams `reasoning_co
 
 Preconditions:
 
-- `uv sync` has completed and `uv run pa-verify --json` reports six passes.
+- `uv sync` has completed and `uv run pa-verify --json` reports ten passes.
 - The helper can bind a local SSE server on `127.0.0.1:0`.
 - The output directory is fresh.
 

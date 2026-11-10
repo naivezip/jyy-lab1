@@ -20,7 +20,7 @@ The workspace is the directory tree the agent treats as home for file operations
 
 Preconditions:
 
-- `uv sync` has completed and `uv run pa-verify --json` reports six passes.
+- `uv sync` has completed and `uv run pa-verify --json` reports ten passes.
 - The output directory is fresh.
 
 - **Read by relative path.** Run `uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py read --path notes.txt --out artifacts/verify-personal-agent/<run-id>/workspace`. `output.txt` contains `read notes.txt` and `[read: lines 1-3 of 3]`; `files.json` shows only `notes.txt`.

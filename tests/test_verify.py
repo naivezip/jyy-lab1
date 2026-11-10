@@ -16,6 +16,10 @@ VERIFY_IDS = [
     "sse-streaming",
     "reasoning",
     "tool-roundtrip",
+    "read-tool",
+    "write-tool",
+    "edit-tool",
+    "workspace-boundary",
 ]
 PROXY_VARIABLES = (
     "HTTP_PROXY",
@@ -67,7 +71,7 @@ def test_list_json_is_machine_readable() -> None:
     assert [check["id"] for check in data["checks"]] == VERIFY_IDS
 
 
-def test_full_run_json_reports_six_passes() -> None:
+def test_full_run_json_reports_ten_passes() -> None:
     result = run_verify("--json")
 
     assert result.returncode == 0, result.stderr
@@ -116,7 +120,7 @@ def test_short_timeout_fails_one_check() -> None:
     assert data["checks"][0]["failure"]
 
 
-def test_short_timeout_still_reports_all_six() -> None:
+def test_short_timeout_still_reports_all_ten() -> None:
     result = run_verify("--timeout", "0.001", "--json")
 
     assert result.returncode == 1

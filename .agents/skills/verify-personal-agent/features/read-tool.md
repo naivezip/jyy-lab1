@@ -19,7 +19,7 @@ The read tool lets the model inspect a text file in the workspace as numbered li
 
 Preconditions:
 
-- `uv sync` has completed and `uv run pa-verify --json` reports six passes.
+- `uv sync` has completed and `uv run pa-verify --json` reports ten passes.
 - The workspace is the helper's fresh temporary directory.
 - The output directory is fresh.
 

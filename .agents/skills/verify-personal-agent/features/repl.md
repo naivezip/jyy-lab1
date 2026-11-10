@@ -21,7 +21,7 @@ The REPL lets a user keep one conversation open in a terminal, send multiple pro
 
 Preconditions:
 
-- `uv sync` has completed and `uv run pa-verify --json` reports six passes.
+- `uv sync` has completed and `uv run pa-verify --json` reports ten passes.
 - For a direct `uv run pa`, `PA_API_KEY` is available from the environment or the current directory's `.env`; without it, `pa` exits 2 before printing the banner. `pa_harness.py` injects `PA_API_KEY=verify-key` for the journey.
 - The helper has a PTY available. The app uses `input()` and the renderer checks `isatty()`.
 - The output directory is fresh.

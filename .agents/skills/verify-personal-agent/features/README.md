@@ -5,7 +5,7 @@ This directory is the maintained source for verifying the user-facing behavior o
 ## Baseline preconditions
 
 - Run `uv sync` once from the repository root.
-- Run `uv run pa-verify --json` and require exit code 0, `"ok": true`, and six `"status": "pass"` checks before driving a feature.
+- Run `uv run pa-verify --json` and require exit code 0, `"ok": true`, and ten `"status": "pass"` checks before driving a feature.
 - Set a unique `RUN_ID` and keep proof under `artifacts/verify-personal-agent/$RUN_ID/<feature>/`.
 - Use `pa_harness.py` for feature journeys. It starts a local fake OpenAI-compatible SSE server, injects `PA_API_KEY=verify-key`, and runs the real `pa` CLI in a temporary workspace.
 - Do not use a real API key or the public DeepSeek endpoint for verification. Do not drive an instance that this run did not start.

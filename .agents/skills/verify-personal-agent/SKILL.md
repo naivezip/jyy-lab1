@@ -37,7 +37,7 @@ Run the read-only acceptance check before driving any feature:
 uv run pa-verify --json
 ```
 
-Require exit code 0, `"ok": true`, six checks, and `"status": "pass"` for every check. If it fails, stop. Report the check id and its `failure` from the JSON, and do not claim a feature was verified. `uv run pa-verify --list` prints the check ids. `uv run pa --version` must also print `pa 0.1.0`.
+Require exit code 0, `"ok": true`, ten checks, and `"status": "pass"` for every check. If it fails, stop. Report the check id and its `failure` from the JSON, and do not claim a feature was verified. `uv run pa-verify --list` prints the check ids. `uv run pa --version` must also print `pa 0.1.0`.
 
 ## Drive
 
@@ -61,6 +61,7 @@ uv run pa-verify --only api-request --json
 uv run pa-verify --only repl --json
 uv run pa-verify --only sse-streaming,reasoning --json
 uv run pa-verify --only tool-roundtrip --json
+uv run pa-verify --only read-tool,write-tool,edit-tool,workspace-boundary --json
 uv run pa-verify --only cli-terminal --json
 ```
 

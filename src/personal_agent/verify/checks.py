@@ -14,7 +14,7 @@ from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from .fake_server import DONE, FakeSSEServer, SSEEvent, chunk
 
@@ -377,17 +377,20 @@ class VerificationSession:
         request = requests[0] if requests else {}
         tools = request.get("tools") or []
         messages = request.get("messages") or []
-        tool_name = (tools[0].get("function") or {}).get("name", "") if tools else ""
+        tool_names = [
+            (tool.get("function") or {}).get("name", "") for tool in tools if isinstance(tool, dict)
+        ]
         stream_options = request.get("stream_options") or {}
         self.note(
             "request",
             f"model={request.get('model')} stream={str(request.get('stream')).lower()} "
-            f"include_usage={str(stream_options.get('include_usage')).lower()} tools={tool_name}",
+            f"include_usage={str(stream_options.get('include_usage')).lower()} "
+            f"tools={','.join(tool_names)}",
         )
         self.expect_equal("model", request.get("model"), "deepseek-flash")
         self.expect_equal("stream", request.get("stream"), True)
         self.expect_equal("stream_options", request.get("stream_options"), {"include_usage": True})
-        self.expect_equal("tools[0].function.name", tool_name, "bash")
+        self.expect_equal("tool names", tool_names, ["bash", "read", "write", "edit"])
         self.expect_equal(
             "first message role", messages[0].get("role") if messages else None, "system"
         )
@@ -513,6 +516,141 @@ class VerificationSession:
         self.expect_equal("tool message call id", following.get("tool_call_id"), "call_1")
         self.expect_in("verify-tool-ok", following.get("content") or "", "tool message")
 
+    def check_read_tool(self) -> None:
+        with self.workspace() as cwd:
+            (cwd / "notes.txt").write_text("alpha\nbeta\ngamma\n", encoding="utf-8")
+            with self.fake_server(
+                _tool_call_scripts("read", {"path": "notes.txt", "start": 2, "end": 3})
+            ) as server:
+                result = self.run_cli(["-p", "read the notes"], cwd=cwd, server=server)
+                requests = list(server.requests)
+        self.expect_equal("exit code", result.returncode, 0)
+        self.expect_equal("request count", len(requests), 2)
+        messages = _request_messages(requests, 1)
+        call, following = _tool_exchange(messages, "call_1")
+        self.expect(call is not None, "request 2: missing assistant tool call 'call_1'")
+        function = (call or {}).get("function") or {}
+        self.expect_equal("tool call function", function.get("name"), "read")
+        content = following.get("content") or ""
+        self.note("tool", "read notes.txt 2-3")
+        self.note("observation", content.splitlines()[0] if content else "")
+        self.expect_in("lines 2-3 of 3", content, "tool message")
+        self.expect_in("     2\tbeta", content, "tool message numbered line")
+        self.expect_in("[read: lines 2-3 of 3]", result.output, "stdout")
+
+    def check_write_tool(self) -> None:
+        with self.workspace() as cwd:
+            with self.fake_server(
+                _tool_call_scripts(
+                    "write", {"path": "created.txt", "content": "created by verify\n"}
+                )
+            ) as server:
+                result = self.run_cli(["-p", "create a file"], cwd=cwd, server=server)
+                requests = list(server.requests)
+                created_path = cwd / "created.txt"
+                created = created_path.read_text(encoding="utf-8") if created_path.is_file() else ""
+        self.expect_equal("exit code", result.returncode, 0)
+        self.expect_equal("request count", len(requests), 2)
+        messages = _request_messages(requests, 1)
+        call, following = _tool_exchange(messages, "call_1")
+        self.expect(call is not None, "request 2: missing assistant tool call 'call_1'")
+        function = (call or {}).get("function") or {}
+        self.expect_equal("tool call function", function.get("name"), "write")
+        self.expect_equal("written content", created, "created by verify\n")
+        self.note("tool", "write created.txt")
+        self.note("bytes", str(len(created.encode("utf-8"))))
+        self.expect_in("Wrote 18 bytes", following.get("content") or "", "tool message")
+        self.expect_in("[write: Wrote 18 bytes to created.txt]", result.output, "stdout")
+
+        with self.workspace() as cwd:
+            (cwd / "notes.txt").write_text("alpha\n", encoding="utf-8")
+            with self.fake_server(
+                _tool_call_scripts("write", {"path": "notes.txt", "content": "replacement"})
+            ) as server:
+                refusal = self.run_cli(["-p", "overwrite the file"], cwd=cwd, server=server)
+                unchanged = (cwd / "notes.txt").read_text(encoding="utf-8")
+        self.expect_equal("existing write exit code", refusal.returncode, 0)
+        self.expect_in("already exists; use edit", refusal.output, "existing write stdout")
+        self.expect_equal("existing file unchanged", unchanged, "alpha\n")
+
+    def check_edit_tool(self) -> None:
+        with self.workspace() as cwd:
+            (cwd / "notes.txt").write_text("alpha\nbeta\ngamma\n", encoding="utf-8")
+            with self.fake_server(
+                _tool_call_scripts(
+                    "edit",
+                    {"path": "notes.txt", "start": 2, "end": 2, "content": "BETA\n"},
+                )
+            ) as server:
+                result = self.run_cli(["-p", "edit the notes"], cwd=cwd, server=server)
+                requests = list(server.requests)
+                edited = (cwd / "notes.txt").read_text(encoding="utf-8")
+        self.expect_equal("exit code", result.returncode, 0)
+        self.expect_equal("request count", len(requests), 2)
+        messages = _request_messages(requests, 1)
+        call, following = _tool_exchange(messages, "call_1")
+        self.expect(call is not None, "request 2: missing assistant tool call 'call_1'")
+        function = (call or {}).get("function") or {}
+        self.expect_equal("tool call function", function.get("name"), "edit")
+        self.expect_equal("edited content", edited, "alpha\nBETA\ngamma\n")
+        self.note("tool", "edit notes.txt 2-2")
+        self.note("edited", edited.strip())
+        self.expect_in(
+            "Edited notes.txt: replaced lines 2-2 of 3",
+            following.get("content") or "",
+            "tool message",
+        )
+        self.expect_in("[edit: Edited notes.txt: replaced lines 2-2 of 3]", result.output, "stdout")
+
+        with self.workspace() as cwd:
+            with self.fake_server(
+                _tool_call_scripts(
+                    "edit",
+                    {"path": "missing.txt", "start": 1, "end": 1, "content": "x"},
+                )
+            ) as server:
+                missing = self.run_cli(["-p", "edit a missing file"], cwd=cwd, server=server)
+        self.expect_equal("missing edit exit code", missing.returncode, 0)
+        self.expect_in("does not exist; use write", missing.output, "missing edit stdout")
+
+    def check_workspace_boundary(self) -> None:
+        with self.workspace() as cwd:
+            (cwd / "notes.txt").write_text("alpha\n", encoding="utf-8")
+            with self.fake_server(
+                _tool_call_scripts("read", {"path": "../escaped-read.txt"})
+            ) as server:
+                read_result = self.run_cli(["-p", "read outside"], cwd=cwd, server=server)
+                read_requests = list(server.requests)
+            with self.fake_server(
+                _tool_call_scripts("write", {"path": "../escaped-write.txt", "content": "nope"})
+            ) as server:
+                write_result = self.run_cli(["-p", "write outside"], cwd=cwd, server=server)
+                write_requests = list(server.requests)
+            read_target = cwd.parent / "escaped-read.txt"
+            write_target = cwd.parent / "escaped-write.txt"
+            escaped_read_exists = read_target.exists()
+            escaped_write_exists = write_target.exists()
+        self.expect_equal("read exit code", read_result.returncode, 0)
+        self.expect_equal("write exit code", write_result.returncode, 0)
+        read_call, read_following = _tool_exchange(_request_messages(read_requests, 1), "call_1")
+        write_call, write_following = _tool_exchange(_request_messages(write_requests, 1), "call_1")
+        self.expect(read_call is not None, "request 2: missing read tool call")
+        self.expect(write_call is not None, "request 2: missing write tool call")
+        self.note("read escape", "rejected")
+        self.note("write escape", "rejected")
+        self.expect_in(
+            "resolves outside the workspace",
+            read_following.get("content") or "",
+            "read tool message",
+        )
+        self.expect_in(
+            "resolves outside the workspace",
+            write_following.get("content") or "",
+            "write tool message",
+        )
+        self.expect(not escaped_read_exists, "read escape created an outside file")
+        self.expect(not escaped_write_exists, "write escape created an outside file")
+
 
 CHECKS: tuple[Check, ...] = (
     Check("api-request", 1, "Correct API request", VerificationSession.check_api_request),
@@ -530,6 +668,17 @@ CHECKS: tuple[Check, ...] = (
         6,
         "Bash tool round-trips into the next request",
         VerificationSession.check_tool_roundtrip,
+    ),
+    Check("read-tool", 7, "Read tool returns numbered lines", VerificationSession.check_read_tool),
+    Check(
+        "write-tool", 8, "Write tool creates new files only", VerificationSession.check_write_tool
+    ),
+    Check("edit-tool", 9, "Edit tool replaces a line range", VerificationSession.check_edit_tool),
+    Check(
+        "workspace-boundary",
+        10,
+        "File tools stay inside the workspace",
+        VerificationSession.check_workspace_boundary,
     ),
 )
 
@@ -577,7 +726,11 @@ def _streaming_script() -> list[SSEEvent]:
 
 
 def _tool_scripts(command: str) -> list[list[SSEEvent]]:
-    arguments = json.dumps({"command": command})
+    return _tool_call_scripts("bash", {"command": command})
+
+
+def _tool_call_scripts(name: str, arguments: dict[str, object]) -> list[list[SSEEvent]]:
+    raw_arguments = json.dumps(arguments)
     first: list[SSEEvent] = [
         (
             0.0,
@@ -588,7 +741,7 @@ def _tool_scripts(command: str) -> list[list[SSEEvent]]:
                             "index": 0,
                             "id": "call_1",
                             "type": "function",
-                            "function": {"name": "bash", "arguments": arguments},
+                            "function": {"name": name, "arguments": raw_arguments},
                         }
                     ]
                 }
@@ -599,3 +752,22 @@ def _tool_scripts(command: str) -> list[list[SSEEvent]]:
         (0.0, DONE),
     ]
     return [first, _text_script("Done.")]
+
+
+def _request_messages(requests: Sequence[dict[str, Any]], index: int) -> list[dict[str, Any]]:
+    if len(requests) <= index:
+        return []
+    return list(requests[index].get("messages") or [])
+
+
+def _tool_exchange(
+    messages: Sequence[dict[str, Any]], call_id: str
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    for index, message in enumerate(messages):
+        if message.get("role") != "assistant":
+            continue
+        for candidate in message.get("tool_calls") or []:
+            if isinstance(candidate, dict) and candidate.get("id") == call_id:
+                following = messages[index + 1] if index + 1 < len(messages) else {}
+                return candidate, following
+    return None, {}

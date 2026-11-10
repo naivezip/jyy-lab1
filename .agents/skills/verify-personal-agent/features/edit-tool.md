@@ -19,7 +19,7 @@ The edit tool lets the model replace a 1-based inclusive line range in an existi
 
 Preconditions:
 
-- `uv sync` has completed and `uv run pa-verify --json` reports six passes.
+- `uv sync` has completed and `uv run pa-verify --json` reports ten passes.
 - The output directory is fresh.
 
 - **Replace one line.** Run `uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py edit --path notes.txt --start 2 --end 2 --content "BETA\n" --out artifacts/verify-personal-agent/<run-id>/edit-tool`. The helper seeds `notes.txt` with `alpha`, `beta`, `gamma`, serves an `edit` call, and then a final reply. `output.txt` contains `edit notes.txt`, `[edit: Edited notes.txt: replaced lines 2-2 of 3]`, and `Done.`; `exit_code.txt` reads `0`.

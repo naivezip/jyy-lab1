@@ -55,7 +55,7 @@ Every answer ends with the token usage of that turn.
 
 ## Verify
 
-`pa-verify` executes the six acceptance criteria in
+`pa-verify` executes the ten acceptance criteria in
 [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) against the real `pa` CLI. It runs
 entirely offline: every check starts a local fake SSE server, uses a fresh
 temporary workspace, and injects a fake API key, so no real key or network
@@ -65,6 +65,7 @@ access is needed.
 uv run pa-verify
 uv run pa-verify --list
 uv run pa-verify --only repl,tool-roundtrip --json
+uv run pa-verify --only read-tool,write-tool,edit-tool,workspace-boundary --json
 ```
 
 | Flag | Effect |

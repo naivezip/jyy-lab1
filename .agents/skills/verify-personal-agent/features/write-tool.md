@@ -19,7 +19,7 @@ The write tool lets the model create a new text file in the workspace, including
 
 Preconditions:
 
-- `uv sync` has completed and `uv run pa-verify --json` reports six passes.
+- `uv sync` has completed and `uv run pa-verify --json` reports ten passes.
 - The output directory is fresh.
 
 - **Create a file.** Run `uv run python .agents/skills/verify-personal-agent/scripts/pa_harness.py write --path created.txt --content "created by write\n" --out artifacts/verify-personal-agent/<run-id>/write-tool`. `output.txt` contains `write created.txt`, `[write: Wrote 17 bytes to created.txt]`, and `Done.`; `exit_code.txt` reads `0`.

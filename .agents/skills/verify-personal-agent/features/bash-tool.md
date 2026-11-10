@@ -20,7 +20,7 @@ The bash tool lets the model run a shell command in the user's working directory
 
 Preconditions:
 
-- `uv sync` has completed and `uv run pa-verify --json` reports six passes.
+- `uv sync` has completed and `uv run pa-verify --json` reports ten passes.
 - `bash` is available on the host.
 - The output directory is fresh.
 

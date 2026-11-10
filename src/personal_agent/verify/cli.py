@@ -30,7 +30,7 @@ def _positive_seconds(value: str) -> float:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pa-verify",
-        description="Verify the six acceptance criteria offline against the real `pa` CLI.",
+        description="Verify the ten acceptance criteria offline against the real `pa` CLI.",
     )
     parser.add_argument("--list", action="store_true", help="list checks and exit")
     parser.add_argument(
